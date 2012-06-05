@@ -1,0 +1,31 @@
+Index: linux/arch/arm/mach-omap2/board-am335xevm.c
+===================================================================
+--- linux.orig/arch/arm/mach-omap2/board-am335xevm.c	2012-05-30 05:18:56.000000000 +1200
++++ linux/arch/arm/mach-omap2/board-am335xevm.c	2012-06-05 21:25:10.000000000 +1200
+@@ -2284,6 +2284,16 @@
+ 	am33xx_d_can_init(1);
+ }
+ 
++static void pdcan_init(int evm_id, int profile)
++{
++	pr_info("Phil's CAN Proto cape\n");
++
++	setup_pin_mux(uart1dcan1_pin_mux);
++
++	am33xx_d_can_init(1);
++}
++
++
+ /* Setup McASP 1 */
+ static void mcasp1_init(int evm_id, int profile)
+ {
+@@ -3321,6 +3331,9 @@
+ 	 *this may effect power management in the future
+ 	 */
+ 	register_all_pwms();
++
++        /*HACK: Enable my can setup. */
++        pdcan_init(0,0);
+ }
+ 
+ 
