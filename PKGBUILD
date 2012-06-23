@@ -32,7 +32,7 @@ build() {
 
 	cd $srcdir/linux  
 
-        patch -Np0 -i "${srcdir}/am335x-can.patch"
+        patch -p0 -i "${srcdir}/am335x-can.patch"
 
 	make prepare
 
