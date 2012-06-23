@@ -23,13 +23,13 @@ source=("ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-${_basekernel}.tar.xz"
         #"ftp://ftp.kernel.org/pub/linux/kernel/v3.x/patch-${pkgver}.bz2"
         "rcn-ee.diff.gz::http://rcn-ee.net/deb/sid-armhf/v3.2.21-psp15/patch-3.2-psp15.diff.gz"
         'config'
-        'change-default-console-loglevel.patch'
+        #'change-default-console-loglevel.patch'
         'aufs3-3.2.patch.gz'
         'am335x-can.patch')
 md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
          'd65b23e0e3734ed77be50ca2081546a9'
          '4fc8456b09722a4c755abd6944a443a8'
-         '9d3c56a4b999c8bfbd4018089a62f662'
+         #'9d3c56a4b999c8bfbd4018089a62f662'
          '6ea7b005a74be27abb072c934ef15a2c'
          '8c94843ebde37c56631ab81c9042134d')
 
@@ -44,7 +44,7 @@ build() {
   # set DEFAULT_CONSOLE_LOGLEVEL to 4 (same value as the 'quiet' kernel param)
   # remove this when a Kconfig knob is made available by upstream
   # (relevant patch sent upstream: https://lkml.org/lkml/2011/7/26/227)
-  patch -Np1 -i "${srcdir}/change-default-console-loglevel.patch"
+  #patch -Np1 -i "${srcdir}/change-default-console-loglevel.patch"
 
   # ALARM patches
   patch -Np1 -i "${srcdir}/rcn-ee.diff"
