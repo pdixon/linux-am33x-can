@@ -1,56 +1,100 @@
-# Maintainer: Phil Dixon <phil@dixon.gen.nz>
+# Maintainer: Stephen Oliver <mrsteveman1@gmail.com>
+# Maintainer: Kevin Mihelich <kevin@archlinuxarm.org>
 
 # am33x kernel and headers
 #  - note: any other kernel packages should include headers for that march
 #  - there will be no v7 kernel26 package, each march will be tagged individually
 
-noautobuild=1
-plugrel=1
+buildarch=4
 
 pkgbase=linux-am33x-can
 pkgname=('linux-am33x-can' 'linux-headers-am33x-can')
+# pkgname=linux-custom       # Build kernel with a different name
 _kernelname=${pkgname#linux}
-_basekernel="am33x"
-pkgver=3.2.18
-pkgrel=alarm1
-arch=('armv7h')
+_basekernel=3.2
+pkgver=${_basekernel}.21
+pkgrel=1
+arch=('arm')
 url="http://www.kernel.org/"
 license=('GPL2')
-makedepends=('xmlto' 'docbook-xsl' 'uboot-mkimage' 'git')
+makedepends=('xmlto' 'docbook-xsl' 'uboot-mkimage')
 options=('!strip')
-source=("config"
-	"https://github.com/koenkooi/linux/zipball/linux-ti33x-psp-3.2.18-r12d+gitr720e07b4c1f687b61b147b31c698cb6816d72f01"
-	"am335x-can.patch")
-        
+source=("ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-${_basekernel}.tar.xz"
+        #"ftp://ftp.kernel.org/pub/linux/kernel/v3.x/patch-${pkgver}.bz2"
+        "rcn-ee.diff.gz::http://rcn-ee.net/deb/sid-armhf/v3.2.21-psp15/patch-3.2-psp15.diff.gz"
+        'config'
+        'change-default-console-loglevel.patch'
+        'aufs3-3.2.patch.gz'
+        'am335x-can.patch')
+md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
+         'd65b23e0e3734ed77be50ca2081546a9'
+         '4fc8456b09722a4c755abd6944a443a8'
+         '9d3c56a4b999c8bfbd4018089a62f662'
+         '6ea7b005a74be27abb072c934ef15a2c'
+         '8c94843ebde37c56631ab81c9042134d')
+
 build() {
+  cd "${srcdir}/linux-${_basekernel}"
 
-	cd $srcdir
+  #patch -p1 -i "${srcdir}/patch-${pkgver}"
 
-	mv koenkooi-linux-* linux
+  # add latest fixes from stable queue, if needed
+  # http://git.kernel.org/?p=linux/kernel/git/stable/stable-queue.git
 
-  	ln -s "${srcdir}/config" "${srcdir}/linux/.config"
+  # set DEFAULT_CONSOLE_LOGLEVEL to 4 (same value as the 'quiet' kernel param)
+  # remove this when a Kconfig knob is made available by upstream
+  # (relevant patch sent upstream: https://lkml.org/lkml/2011/7/26/227)
+  patch -Np1 -i "${srcdir}/change-default-console-loglevel.patch"
 
-	cd $srcdir/linux  
+  # ALARM patches
+  patch -Np1 -i "${srcdir}/rcn-ee.diff"
+  patch -Np1 -i "${srcdir}/aufs3-3.2.patch"
+  patch -Np1 -i "${srcdir}/am335x-can.patch"
 
-        patch -p0 -i "${srcdir}/am335x-can.patch"
+  cat "${srcdir}/config" > ./.config
 
-	make prepare
+  # set extraversion to pkgrel
+  sed -ri "s|^(EXTRAVERSION =).*|\1 -${pkgrel}|" Makefile
 
-	make ${MAKEFLAGS} uImage modules
+  # get kernel version
+  make prepare
+
+  # load configuration
+  # Configure the kernel. Replace the line below with one of your choice.
+  #make menuconfig # CLI menu for configuration
+  #make nconfig # new CLI menu for configuration
+  #make xconfig # X-based configuration
+  #make oldconfig # using old config from previous kernel version
+  # ... or manually edit .config
+
+  # Copy back our configuration (use with new kernel version)
+  #cp ./.config ../${_basekernel}.config
+
+  ####################
+  # stop here
+  # this is useful to configure the kernel
+  #msg "Stopping build"
+  #return 1
+  ####################
+
+  #yes "" | make config
+
+  # build!
+  make ${MAKEFLAGS} uImage modules
 }
 
 package_linux-am33x-can() {
-  pkgdesc="The Linux Kernel and modules - am33x processors - built with CAN support."
+  pkgdesc="The Linux Kernel and modules - am33x processors"
   groups=('base')
   depends=('coreutils' 'linux-firmware' 'module-init-tools>=3.16' 'mkinitcpio>=0.7')
   optdepends=('crda: to set the correct wireless channels of your country')
-  provides=('kernel26' 'kernel26-am33x' 'linux=${pkgver}' 'linux-am335x')
-  conflicts=('kernel26-am33x' 'linux-tegra' 'linux-am335x')
-  replaces=('kernel26-am33x' 'linux-am335x')
+  provides=('kernel26' 'kernel26-am33x' 'linux=${pkgver}')
+  conflicts=('kernel26-am33x' 'linux-tegra')
+  replaces=('kernel26-am33x')
   backup=("etc/mkinitcpio.d/${pkgname}.preset")
   install=${pkgname}.install
 
-  cd "${srcdir}/linux"
+  cd "${srcdir}/linux-${_basekernel}"
 
   KARCH=arm
 
@@ -82,16 +126,16 @@ package_linux-am33x-can() {
 
 package_linux-headers-am33x-can() {
   pkgdesc="Header files and scripts for building modules for linux kernel - am33x processors"
-  provides=('kernel26-headers-am33x' 'linux-headers=${pkgver}' 'linux-headers-am335x')
-  conflicts=('kernel26-headers-am33x' 'linux-headers-tegra' 'linux-headers-am335x')
-  replaces=('kernel26-headers-am33x' 'linux-headers-am335x')
+  provides=('kernel26-headers-am33x' 'linux-headers=${pkgver}')
+  conflicts=('kernel26-headers-am33x' 'linux-headers-tegra')
+  replaces=('kernel26-headers-am33x')
 
   mkdir -p "${pkgdir}/lib/modules/${_kernver}"
 
   cd "${pkgdir}/lib/modules/${_kernver}"
   ln -sf ../../../usr/src/linux-${_kernver} build
 
-  cd "${srcdir}/linux"
+  cd "${srcdir}/linux-${_basekernel}"
   install -D -m644 Makefile \
     "${pkgdir}/usr/src/linux-${_kernver}/Makefile"
   install -D -m644 kernel/Makefile \
